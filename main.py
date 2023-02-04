@@ -91,6 +91,11 @@ def dj(s,g,gridded_map):
     CLOSED = {}
     heapq.heappush(OPEN,s)
     NodesExpanded=0
+    #print(s._g)
+    dx = abs(s._x-g._x)
+    dy = abs(s._y-g._y)
+    hs = 1.5*(min(dx,dy)) + abs(dx-dy)
+    s._cost = hs
     CLOSED[s.state_hash()] = s
     while (len(OPEN) != 0):
         n = OPEN.pop(0)
@@ -128,6 +133,16 @@ def bibs(s,g,gridded_map):
     OPENf = []
     CLOSEDf = {}
     heapq.heappush(OPENf,s)
+    dx = abs(s._x-g._x)
+    dy = abs(s._y-g._y)
+    hs = 1.5*(min(dx,dy)) + abs(dx-dy)
+    s._cost = hs
+
+    dx = abs(g._x-g._x)
+    dy = abs(g._y-g._y)
+    hs = 1.5*(min(dx,dy)) + abs(dx-dy)
+    g._cost = hs
+    CLOSEDf[s.state_hash()] = s
     ##########################BACKWARD
     OPENb = []
     CLOSEDb = {}
