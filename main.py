@@ -54,7 +54,7 @@ def main():
             print("Solution cost expected: ", solution_costs[i])
             print()
 
-        cost, expanded_mm = None, None # Replace None, None with a call to your implementation of MM
+        cost, expanded_mm = MM(start,goal,gridded_map) # Replace None, None with a call to your implementation of MM
         nodes_expanded_mm.append(expanded_mm)
         
         if cost != solution_costs[i]:
@@ -84,6 +84,15 @@ def main():
         plotter.plot_results(nodes_expanded_mm, nodes_expanded_astar, "Nodes Expanded (MM)", "Nodes Expanded (A*)", "nodes_expanded_mm_astar")
         plotter.plot_results(nodes_expanded_mm, nodes_expanded_biastar, "Nodes Expanded (MM)", "Nodes Expanded (Bi-A*)", "nodes_expanded_mm_biastar")
 
+def getfcost(x,g):
+    #retrieves the f cost given the node and the goal state
+    cx,cy = x._x,x._y
+    dx = abs(cx-g._x)
+    dy = abs(cy-g._y)
+    hs = 1.5*(min(dx,dy)) + abs(dx-dy) 
+    cost = x._g + hs
+    return cost
+
 
 def dj(s,g,gridded_map):
     #gridded_map = Map("dao-map/brc000d.map")
@@ -92,16 +101,15 @@ def dj(s,g,gridded_map):
     heapq.heappush(OPEN,s)
     NodesExpanded=0
     #print(s._g)
-    dx = abs(s._x-g._x)
-    dy = abs(s._y-g._y)
-    hs = 1.5*(min(dx,dy)) + abs(dx-dy)
-    s._cost = hs
+    
+    s._cost = getfcost(s,g)
     CLOSED[s.state_hash()] = s
     while (len(OPEN) != 0):
-        n = OPEN.pop(0)
+        n = heapq.heappop(OPEN)
 
         NodesExpanded+=1
         if n == g:
+            #print(NodesExpanded)
 
             return n._cost,NodesExpanded
         children = gridded_map.successors(n)
@@ -109,11 +117,8 @@ def dj(s,g,gridded_map):
 
         for x in children:
             hash = x.state_hash()
-            cx,cy = x._x,x._y
-            dx = abs(cx-g._x)
-            dy = abs(cy-g._y)
-            hs = 1.5*(min(dx,dy)) + abs(dx-dy) 
-            x._cost +=x._g 
+            
+            x.set_cost(getfcost(x,g))
                 
             if x.state_hash() not in CLOSED:
                 heapq.heappush(OPEN,x)
@@ -125,7 +130,7 @@ def dj(s,g,gridded_map):
    
     
     #gridded_map.plot_map(CLOSED,s,g,'ponisDL')
-    return float(-1),None    
+    return float(-1),NodesExpanded    
 
 def bibs(s,g,gridded_map):
     #gridded_map = Map("dao-map/brc000d.map")
@@ -133,15 +138,13 @@ def bibs(s,g,gridded_map):
     OPENf = []
     CLOSEDf = {}
     heapq.heappush(OPENf,s)
-    dx = abs(s._x-g._x)
-    dy = abs(s._y-g._y)
-    hs = 1.5*(min(dx,dy)) + abs(dx-dy)
-    s._cost = hs
 
-    dx = abs(g._x-g._x)
-    dy = abs(g._y-g._y)
+    s._cost = getfcost(s,g)
+
+    dx = abs(g._x-s._x)
+    dy = abs(g._y-s._y)
     hs = 1.5*(min(dx,dy)) + abs(dx-dy)
-    g._cost = hs
+    g._cost = hs + g._g
     CLOSEDf[s.state_hash()] = s
     ##########################BACKWARD
     OPENb = []
@@ -152,7 +155,7 @@ def bibs(s,g,gridded_map):
     u=float('inf')
     while (len(OPENf) != 0) and (len(OPENb) !=0):
         #stopping condition
-        if u<= (OPENf[0]._cost + OPENb[0]._cost):
+        if u<= min(OPENf[0]._cost, OPENb[0]._cost):
             #print(NodesExpanded)
             #gridded_map.plot_map(CLOSEDb|CLOSEDf,s,g,'ponisbibs')
             return u,NodesExpanded
@@ -167,21 +170,19 @@ def bibs(s,g,gridded_map):
             for x in children:
                 
                 hash = x.state_hash()
-                cx,cy = x._x,x._y
-                dx = abs(cx-g._x)
-                dy = abs(cy-g._y)
-                hs = 1.5*(min(dx,dy)) + abs(dx-dy) 
-                x._cost +=x._g 
+            
+                x.set_cost(getfcost(x,g))
                 #Found a solution path going through x
                 if hash in  CLOSEDb:
-                    u = min(u, x._cost +CLOSEDb[hash]._cost)
+                    u = min(u, x._g +CLOSEDb[hash]._g)
                 if hash not in CLOSEDf:
                     heapq.heappush(OPENf,x)
                     CLOSEDf[hash] = x
 
                 #If it has found a better path
                 if hash in CLOSEDf and x._g< CLOSEDf[hash]._g:
-                    heapq.heappush(OPENf,x)
+                    #heapq.heappush(OPENf,x)
+                    CLOSEDf[hash]._cost = x._cost
                     CLOSEDf[hash]._g = x._g
                     heapq.heapify(OPENf)
         else:
@@ -192,23 +193,87 @@ def bibs(s,g,gridded_map):
             nx,ny = n._x, n._y
             for x in children:
                 hash = x.state_hash()
-                cx,cy = x._x,x._y
-                dx = abs(cx-g._x)
-                dy = abs(cy-g._y)
-                hs = 1.5*(min(dx,dy)) + abs(dx-dy) 
-                x._cost +=x._g 
+                x.set_cost(getfcost(x,g))
                 if hash in  CLOSEDf:
-                    u = min(u, x._cost +CLOSEDf[hash]._cost)
+                    u = min(u, x._g+CLOSEDf[hash]._g)
                 if hash not in CLOSEDb:
                     heapq.heappush(OPENb,x)
                     CLOSEDb[hash] = x
                 if hash in CLOSEDb and x._g< CLOSEDb[hash]._g:
-                    heapq.heappush(OPENb,x)
+                   # heapq.heappush(OPENb,x)
+                    CLOSEDb[hash]._cost = x._cost
                     CLOSEDb[hash]._g = x._g
                     heapq.heapify(OPENb)
     #gridded_map.plot_map(CLOSEDb|CLOSEDf,s,g,'ponisbibsL')
-    return -1,None
-        
+    return -1,NodesExpanded
+
+def MM(s,g,gridded_map):
+    ###########################FORWARD
+    OPENf = []
+    CLOSEDf = {}
+    heapq.heappush(OPENf,s)
+    CLOSEDf[s.state_hash()] = s
+    f = getfcost(s,g)
+    p = max(f,2*s._g)
+    s.set_cost(p)
+    
+    ##########################BACKWARD
+    OPENb = []
+    CLOSEDb = {}
+    heapq.heappush(OPENb,g)
+    CLOSEDb[g.state_hash()] = g
+    f = getfcost(g,s)
+    p = max(f,2*g._g)
+    g.set_cost(p)
+    NodesExpanded=0
+    u=float('inf')
+    while (len(OPENf) != 0) and (len(OPENb) !=0):
+        if u<= min(OPENf[0]._cost, OPENb[0]._cost):
+            return u,NodesExpanded
+        if OPENf[0]._cost<OPENb[0]._cost:
+            n =OPENf.pop(0)
+            NodesExpanded+=1
+            children = gridded_map.successors(n)
+            for x in children:
+                 hash = x.state_hash()
+                 f = getfcost(x,g)
+                 p = max(f,2*x._g)
+                 x.set_cost(p)
+                 if hash in CLOSEDb:
+                    u = min(u, x._g +CLOSEDb[hash]._g)
+
+                 if hash in CLOSEDf and x._g< CLOSEDf[hash]._g:
+                    #heapq.heappush(OPENf,x)
+                    CLOSEDf[hash]._cost = x._cost
+                    CLOSEDf[hash]._g = x._g
+                    heapq.heapify(OPENf)
+
+                 if hash not in CLOSEDf:
+                    heapq.heappush(OPENf,x)
+                    CLOSEDf[hash] = x
+
+        else:
+             n =OPENb.pop(0)
+             NodesExpanded+=1
+             children = gridded_map.successors(n)
+             for x in children:
+                 hash = x.state_hash()
+                 f = getfcost(x,g)
+                 p = max(f,2*x._g)
+                 x.set_cost(p)
+                 if hash in CLOSEDf:
+                    u = min(u, x._g +CLOSEDf[hash]._g)
+
+                 if hash in CLOSEDb and x._g< CLOSEDb[hash]._g:
+                   # heapq.heappush(OPENb,x)
+                    CLOSEDb[hash]._cost = x._cost
+                    CLOSEDb[hash]._g = x._g
+                    heapq.heapify(OPENb)
+
+                 if hash not in CLOSEDb:
+                    heapq.heappush(OPENb,x)
+                    CLOSEDb[hash] = x
+    return -1,NodesExpanded
 
 if __name__ == "__main__":
     main()
