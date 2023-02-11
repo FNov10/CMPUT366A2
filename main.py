@@ -2,6 +2,7 @@ from search.algorithms import State
 from search.map import Map
 import getopt
 import sys
+import time
 import heapq
 def main():
     """
