@@ -43,7 +43,7 @@ def main():
         start = start_states[i]
         goal = goal_states[i]
     
-        cost, expanded_astar = dj(start,goal,gridded_map) # Replace None, None with a call to your implementation of A*
+        cost, expanded_astar = A(start,goal,gridded_map) # Replace None, None with a call to your implementation of A*
         nodes_expanded_astar.append(expanded_astar)
 
         if cost != solution_costs[i]:
@@ -65,7 +65,7 @@ def main():
             print("Solution cost expected: ", solution_costs[i])
             print()
 
-        cost, expanded_biastar = bibs(start,goal,gridded_map)# Replace None, None with a call to your implementation of Bi-A*
+        cost, expanded_biastar = biA(start,goal,gridded_map)# Replace None, None with a call to your implementation of Bi-A*
         nodes_expanded_biastar.append(expanded_biastar)
         
         if cost != solution_costs[i]:
@@ -94,7 +94,7 @@ def getfcost(x,g):
     return cost
 
 
-def dj(s,g,gridded_map):
+def A(s,g,gridded_map):
     #gridded_map = Map("dao-map/brc000d.map")
     OPEN = []
     CLOSED = {}
@@ -132,7 +132,7 @@ def dj(s,g,gridded_map):
     #gridded_map.plot_map(CLOSED,s,g,'ponisDL')
     return float(-1),NodesExpanded    
 
-def bibs(s,g,gridded_map):
+def biA(s,g,gridded_map):
     #gridded_map = Map("dao-map/brc000d.map")
     ###########################FORWARD
     OPENf = []
@@ -156,12 +156,11 @@ def bibs(s,g,gridded_map):
     while (len(OPENf) != 0) and (len(OPENb) !=0):
         #stopping condition
         if u<= min(OPENf[0]._cost, OPENb[0]._cost):
-            #print(NodesExpanded)
             #gridded_map.plot_map(CLOSEDb|CLOSEDf,s,g,'ponisbibs')
             return u,NodesExpanded
         
         #expanding forward search
-        if OPENf[0]._g<OPENb[0]._g:
+        if OPENf[0]._cost<OPENb[0]._cost:
 
             n =OPENf.pop(0)
             NodesExpanded+=1
@@ -181,7 +180,7 @@ def bibs(s,g,gridded_map):
 
                 #If it has found a better path
                 if hash in CLOSEDf and x._g< CLOSEDf[hash]._g:
-                    #heapq.heappush(OPENf,x)
+                    heapq.heappush(OPENf,x)
                     CLOSEDf[hash]._cost = x._cost
                     CLOSEDf[hash]._g = x._g
                     heapq.heapify(OPENf)
@@ -193,14 +192,14 @@ def bibs(s,g,gridded_map):
             nx,ny = n._x, n._y
             for x in children:
                 hash = x.state_hash()
-                x.set_cost(getfcost(x,g))
+                x.set_cost(getfcost(x,s))
                 if hash in  CLOSEDf:
                     u = min(u, x._g+CLOSEDf[hash]._g)
                 if hash not in CLOSEDb:
                     heapq.heappush(OPENb,x)
                     CLOSEDb[hash] = x
                 if hash in CLOSEDb and x._g< CLOSEDb[hash]._g:
-                   # heapq.heappush(OPENb,x)
+                    heapq.heappush(OPENb,x)
                     CLOSEDb[hash]._cost = x._cost
                     CLOSEDb[hash]._g = x._g
                     heapq.heapify(OPENb)
@@ -243,7 +242,7 @@ def MM(s,g,gridded_map):
                     u = min(u, x._g +CLOSEDb[hash]._g)
 
                  if hash in CLOSEDf and x._g< CLOSEDf[hash]._g:
-                    #heapq.heappush(OPENf,x)
+                    heapq.heappush(OPENf,x)
                     CLOSEDf[hash]._cost = x._cost
                     CLOSEDf[hash]._g = x._g
                     heapq.heapify(OPENf)
@@ -258,14 +257,14 @@ def MM(s,g,gridded_map):
              children = gridded_map.successors(n)
              for x in children:
                  hash = x.state_hash()
-                 f = getfcost(x,g)
+                 f = getfcost(x,s)
                  p = max(f,2*x._g)
                  x.set_cost(p)
                  if hash in CLOSEDf:
                     u = min(u, x._g +CLOSEDf[hash]._g)
 
                  if hash in CLOSEDb and x._g< CLOSEDb[hash]._g:
-                   # heapq.heappush(OPENb,x)
+                    heapq.heappush(OPENb,x)
                     CLOSEDb[hash]._cost = x._cost
                     CLOSEDb[hash]._g = x._g
                     heapq.heapify(OPENb)
